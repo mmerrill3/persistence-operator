@@ -69,7 +69,6 @@ func Main() int {
 		glog.Fatalf("Issue with starting listener. Exiting... %s", err)
 	}
 
-	pcontroller.RegisterMetrics(r)
 	mux.Handle("/metrics", promhttp.HandlerFor(r, promhttp.HandlerOpts{}))
 
 	ctx, cancel := context.WithCancel(context.Background())

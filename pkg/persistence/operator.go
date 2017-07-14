@@ -15,9 +15,10 @@
 package persistence
 
 import (
+	"github.com/merrill3/persistence-operator/third_party/workqueue"
 	"github.com/mmerrill3/persistence-operator/pkg/client/monitoring/v1alpha1"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/client-go/kubernetes"
 	batch "k8s.io/client-go/pkg/apis/batch/v1"
 	extensionsobj "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/rest"
@@ -36,10 +37,10 @@ const (
 type Operator struct {
 	kclient              *kubernetes.Clientset
 	mclient              *v1alpha1.MonitoringV1alpha1Client
-	promInf              cache.SharedIndexInformer
 	persistenceActionInf cache.SharedIndexInformer
 	host                 string
 	config               Config
+	queue                workqueue.RateLimitingInterface
 }
 
 // Config defines configuration parameters for the Operator.
@@ -78,12 +79,66 @@ func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.Persisten
 	return res, nil
 }
 
-func (c *Operator) RegisterMetrics(r prometheus.Registerer) {
-	r.MustRegister(NewPrometheusCollector(c.promInf.GetStore()))
+// New creates a new controller.
+func New(conf Config, logger log.Logger) (*Operator, error) {
+	cfg, err := k8sutil.NewClusterConfig(conf.Host, conf.TLSInsecure, &conf.TLSConfig)
+	if err != nil {
+		return nil, err
+	}
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := v1alpha1.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	kubeletObjectName := ""
+	kubeletObjectNamespace := ""
+	kubeletSyncEnabled := false
+
+	if conf.KubeletObject != "" {
+		parts := strings.Split(conf.KubeletObject, "/")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("malformatted kubelet object string, must be in format \"namespace/name\"")
+		}
+		kubeletObjectNamespace = parts[0]
+		kubeletObjectName = parts[1]
+		kubeletSyncEnabled = true
+	}
+
+	c := &Operator{
+		kclient:                client,
+		mclient:                mclient,
+		host:                   cfg.Host,
+		kubeletObjectName:      kubeletObjectName,
+		kubeletObjectNamespace: kubeletObjectNamespace,
+		config:                 conf,
+		queue:                  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "persistence"),
+	}
+
+	c.persistenceActionInf = cache.NewSharedIndexInformer(
+		&cache.ListWatch{
+			ListFunc:  mclient.PersistenceActions(api.NamespaceAll).List,
+			WatchFunc: mclient.PersistenceActions(api.NamespaceAll).Watch,
+		},
+		&v1alpha1.PersistenceAction{}, resyncPeriod, cache.Indexers{},
+	)
+	c.persistenceActionInf.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.handlePersistenceActionAdd,
+		DeleteFunc: c.handlePersistenceActionDelete,
+		UpdateFunc: c.handlePersistenceActionUpdate,
+	})
+
+	return c, nil
 }
 
 // Run the controller.
 func (c *Operator) Run(stopc <-chan struct{}) error {
+	defer c.queue.ShutDown()
+
 	errChan := make(chan error)
 	go func() {
 		v, err := c.kclient.Discovery().ServerVersion()
@@ -110,11 +165,123 @@ func (c *Operator) Run(stopc <-chan struct{}) error {
 		return nil
 	}
 
-	go c.promInf.Run(stopc)
+	go c.worker()
 	go c.persistenceActionInf.Run(stopc)
 
 	<-stopc
 	return nil
+}
+
+// worker runs a worker thread that just dequeues items, processes them, and marks them done.
+// It enforces that the syncHandler is never invoked concurrently with the same key.
+func (c *Operator) worker() {
+	for c.processNextWorkItem() {
+	}
+}
+
+func (c *Operator) processNextWorkItem() bool {
+	key, quit := c.queue.Get()
+	if quit {
+		return false
+	}
+	defer c.queue.Done(key)
+
+	err := c.sync(key.(string))
+	if err == nil {
+		c.queue.Forget(key)
+		return true
+	}
+
+	utilruntime.HandleError(errors.Wrap(err, fmt.Sprintf("Sync %q failed", key)))
+	c.queue.AddRateLimited(key)
+
+	return true
+}
+
+func (c *Operator) sync(key string) error {
+	obj, exists, err := c.promInf.GetIndexer().GetByKey(key)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return c.destroyPersistenceAction(key)
+	}
+
+	p := obj.(*v1alpha1.PersistenceAction)
+	if p.Spec.Applied {
+		glog.V(7).Infof("PersistenceAction already applied: %s", key)
+		return nil
+	}
+
+	glog.Infof("sync PersistenceAction", key)
+
+	// Create CronJob if it doesn't exist.
+	cronJobClient := c.kclient.BatchV2alpha1().CronJobs(p.Namespace)
+	if err := k8sutil.CreateOrUpdateCronJob(svcClient, makeCronJob(p)); err != nil {
+		return errors.Wrap(err, "synchronizing cron job failed")
+	}
+
+	return nil
+}
+
+func (c *Operator) keyFunc(obj interface{}) (string, bool) {
+	k, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+	if err != nil {
+		glog.Errorf("creating key failed :%s", err)
+		return k, false
+	}
+	return k, true
+}
+
+func (c *Operator) handlePersistenceActionAdd(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+	glog.Infof("Persistence added : %s", key)
+	//TODO check if there is a job
+	//if not, add one at the time the job is meant to run
+	c.enqueue(key)
+}
+
+func (c *Operator) handlePersistenceActionDelete(obj interface{}) {
+	key, ok := c.keyFunc(obj)
+	if !ok {
+		return
+	}
+	glogInfof("Persistence deleted : %s", key)
+	//TODO check if there is a job
+	//if so, remove it
+	c.enqueue(key)
+}
+
+func (c *Operator) handlePersistenceActionUpdate(old, cur interface{}) {
+	key, ok := c.keyFunc(cur)
+	if !ok {
+		return
+	}
+	glog.Infof("Persistence updated : %s", key)
+	//TODO check if there is a job
+	//if so, remove it, and add a new one
+	c.enqueue(key)
+}
+
+// enqueue adds a key to the queue. If obj is a key already it gets added directly.
+// Otherwise, the key is extracted via keyFunc.
+func (c *Operator) enqueue(obj interface{}) {
+	if obj == nil {
+		return
+	}
+
+	key, ok := obj.(string)
+	if !ok {
+		key, ok = c.keyFunc(obj)
+		if !ok {
+			return
+		}
+	}
+
+	c.queue.Add(key)
 }
 
 func (c *Operator) createTPRs() error {

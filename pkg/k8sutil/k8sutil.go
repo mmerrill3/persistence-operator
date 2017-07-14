@@ -24,8 +24,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	clientv2alpha1 "k8s.io/client-go/kubernetes/typed/batch/v2alpha1"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/apis/batch/v2alpha1"
 	"k8s.io/client-go/rest"
 )
 
@@ -112,46 +114,23 @@ func IsResourceNotFoundError(err error) bool {
 	return false
 }
 
-func CreateOrUpdateService(sclient clientv1.ServiceInterface, svc *v1.Service) error {
-	service, err := sclient.Get(svc.Name, metav1.GetOptions{})
+func CreateOrUpdateCronJob(jclient clientv2alpha1.JobInterface, job *v2alpha1.CronJob) error {
+	existingJob, err := jclient.Get(job.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrap(err, "retrieving service object failed")
+		return errors.Wrap(err, "retrieving job object failed")
 	}
 
 	if apierrors.IsNotFound(err) {
-		_, err = sclient.Create(svc)
+		_, err = jclient.Create(job)
 		if err != nil {
-			return errors.Wrap(err, "creating service object failed")
+			return errors.Wrap(err, "creating job object failed")
 		}
 	} else {
-		svc.ResourceVersion = service.ResourceVersion
-		_, err := sclient.Update(svc)
+		job.ResourceVersion = existingJob.ResourceVersion
+		_, err := jclient.Update(job)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return errors.Wrap(err, "updating service object failed")
+			return errors.Wrap(err, "updating job object failed")
 		}
 	}
-
-	return nil
-}
-
-func CreateOrUpdateEndpoints(eclient clientv1.EndpointsInterface, eps *v1.Endpoints) error {
-	endpoints, err := eclient.Get(eps.Name, metav1.GetOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrap(err, "retrieving existing kubelet endpoints object failed")
-	}
-
-	if apierrors.IsNotFound(err) {
-		_, err = eclient.Create(eps)
-		if err != nil {
-			return errors.Wrap(err, "creating kubelet endpoints object failed")
-		}
-	} else {
-		eps.ResourceVersion = endpoints.ResourceVersion
-		_, err = eclient.Update(eps)
-		if err != nil {
-			return errors.Wrap(err, "updating kubelet endpoints object failed")
-		}
-	}
-
 	return nil
 }

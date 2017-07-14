@@ -80,6 +80,8 @@ type PersistenceActionSpec struct {
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 	// The time that the action will be ran
 	ApplicationTime time `json:"applicationTime"`
+	// The actual actions to run.  Every value in the map will be executed in keys order, ascending
+	Actions map[string]string `json:"actions"`
 }
 
 // Most recent observed status of a PersistenceAction. Read-only. Not

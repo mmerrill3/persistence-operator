@@ -12,7 +12,7 @@ pkgs = $(shell go list ./... | grep -v /vendor/ | grep -v /test/)
 all: check-license format build test
 
 build:
-	$(COMMONENVVAR) $(BUILDENVVAR) go build -o persistence-operator cmd
+	$(COMMONENVVAR) $(BUILDENVVAR) go build -o persistence-operator ./cmd/operator
 
 test:
 	@go test -short $(pkgs)

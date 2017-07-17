@@ -22,9 +22,9 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/coreos/persistence-operator/pkg/client/monitoring/v1alpha1"
-	"github.com/coreos/persistence-operator/pkg/k8sutil"
-	"github.com/coreos/persistence-operator/pkg/persistence"
+	"github.com/mmerrill3/persistence-operator/pkg/client/monitoring/v1alpha1"
+	"github.com/mmerrill3/persistence-operator/pkg/k8sutil"
+	"github.com/mmerrill3/persistence-operator/pkg/persistence"
 )
 
 type API struct {

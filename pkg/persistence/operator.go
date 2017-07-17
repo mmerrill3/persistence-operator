@@ -15,8 +15,8 @@
 package persistence
 
 import (
-	"github.com/merrill3/persistence-operator/third_party/workqueue"
 	"github.com/mmerrill3/persistence-operator/pkg/client/monitoring/v1alpha1"
+	"github.com/mmerrill3/persistence-operator/third_party/workqueue"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	batch "k8s.io/client-go/pkg/apis/batch/v1"
@@ -93,20 +93,6 @@ func New(conf Config, logger log.Logger) (*Operator, error) {
 	mclient, err := v1alpha1.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
-	}
-
-	kubeletObjectName := ""
-	kubeletObjectNamespace := ""
-	kubeletSyncEnabled := false
-
-	if conf.KubeletObject != "" {
-		parts := strings.Split(conf.KubeletObject, "/")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("malformatted kubelet object string, must be in format \"namespace/name\"")
-		}
-		kubeletObjectNamespace = parts[0]
-		kubeletObjectName = parts[1]
-		kubeletSyncEnabled = true
 	}
 
 	c := &Operator{
@@ -221,6 +207,15 @@ func (c *Operator) sync(key string) error {
 		return errors.Wrap(err, "synchronizing cron job failed")
 	}
 
+	return nil
+}
+
+func (c *Operator) destroyPersistenceAction(key string) error {
+	// Create CronJob if it doesn't exist.
+	cronJobClient := c.kclient.BatchV2alpha1().CronJobs(p.Namespace)
+	if err := k8sutil.DeleteCronJob(svcClient, key); err != nil {
+		return errors.Wrap(err, "Deleting cron job failed")
+	}
 	return nil
 }
 

@@ -35,7 +35,7 @@ type PersistenceActionGetter interface {
 }
 
 type PersistenceActionInterface interface {
-	Create(*ServiceMonitor) (*PersistenceAction, error)
+	Create(*PersistenceAction) (*PersistenceAction, error)
 	Get(name string) (*PersistenceAction, error)
 	Update(*PersistenceAction) (*PersistenceAction, error)
 	Delete(name string, options *metav1.DeleteOptions) error

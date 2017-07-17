@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/pkg/api/v1"
 	"time"
 )
 
@@ -79,7 +81,7 @@ type PersistenceActionSpec struct {
 	// Define which tolerations are appicable for the pods
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 	// The time that the action will be ran
-	ApplicationTime time `json:"applicationTime"`
+	ApplicationTime time.Time `json:"applicationTime"`
 	// The actual actions to run.  Every value in the list will be executed in literal order
 	Actions []string `json:"actions"`
 }
@@ -92,7 +94,7 @@ type PersistenceActionStatus struct {
 	// Represents whether the action has been performed
 	Applied bool `json:"paused"`
 	// The time that the action started exectuion
-	ExecutionTime time `json:"executionTime"`
+	ExecutionTime time.Time `json:"executionTime"`
 	// The time that the action completed
-	CompletionTime time `json:"completionTime"`
+	CompletionTime time.Time `json:"completionTime"`
 }

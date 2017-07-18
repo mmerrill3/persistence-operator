@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientv2alpha1 "k8s.io/client-go/kubernetes/typed/batch/v2alpha1"
-	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/batch/v2alpha1"
 	"k8s.io/client-go/rest"
@@ -114,7 +113,7 @@ func IsResourceNotFoundError(err error) bool {
 	return false
 }
 
-func CreateOrUpdateCronJob(jclient clientv2alpha1.JobInterface, job *v2alpha1.CronJob) error {
+func CreateOrUpdateCronJob(jclient clientv2alpha1.BatchV2alpha1Interface, job *v2alpha1.CronJob) error {
 	existingJob, err := jclient.Get(job.Name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrap(err, "retrieving job object failed")

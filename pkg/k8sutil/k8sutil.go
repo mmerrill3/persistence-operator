@@ -134,7 +134,7 @@ func CreateOrUpdateCronJob(jclient clientv2alpha1.BatchV2alpha1Interface, job *v
 	return nil
 }
 
-func DeleteCronJob(jclient clientv2alpha1.JobInterface, name string) error {
+func DeleteCronJob(jclient clientv2alpha1.BatchV2alpha1Interface, name string) error {
 	existingJob, err := jclient.Get(name, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrap(err, "retrieving job failed ")

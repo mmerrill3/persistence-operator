@@ -66,10 +66,12 @@ func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.Persisten
 	if p.Spec.Applied == true {
 		res.Applied = true
 	} else {
-		job, err := kclient.BatchV2alpha1().CronJobs(p.Namespace).Get(p.Name, metav1.GetOptions{})
+		_, err := kclient.BatchV2alpha1().CronJobs(p.Namespace).Get(p.Name, metav1.GetOptions{})
 
 		//TODO need to lookup the job for the cronjob
-
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil

@@ -17,8 +17,8 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"github.com/golang/glog"
+	"github.com/mmerrill3/persistence-operator/pkg/api"
 	persistencecontroller "github.com/mmerrill3/persistence-operator/pkg/persistence"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -58,7 +58,7 @@ func Main() int {
 	}
 
 	mux := http.NewServeMux()
-	web, err := api.New(cfg, logger.With("component", "api"))
+	web, err := api.New(cfg)
 	if err != nil {
 		glog.Fatalf("Issue with starting API integration. Exiting... %s", err)
 	}

@@ -26,7 +26,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/api/v1"
 	extensionsobj "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -67,17 +66,9 @@ func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.Persisten
 	if p.Spec.Applied == true {
 		res.Applied = true
 	} else {
-		job, err := kclient.BatchV2alpha1().CronJobs(p.Namespace).Get(p.Name, v1.GetOptions{})
+		job, err := kclient.BatchV2alpha1().CronJobs(p.Namespace).Get(p.Name, metav1.GetOptions{})
 
-		if nil != job.Status.StartTime {
-			res.ExecutionTime = job.Status.StartTime
-		}
-		if nil != job.Status.CompletionTime {
-			res.CompletionTime = job.Status.CompletionTime
-		}
-		if job.Status.Succeeded > 0 {
-			res.Applied = true
-		}
+		//TODO need to lookup the job for the cronjob
 
 	}
 
@@ -210,7 +201,7 @@ func (c *Operator) sync(key string) error {
 
 	// Create CronJob if it doesn't exist.
 	cronJobClient := c.kclient.BatchV2alpha1().CronJobs(p.Namespace)
-	newCronJob, err := makeCronJob(p)
+	newCronJob, err := makeCronJob(*p)
 	if err != nil {
 		return err
 	}

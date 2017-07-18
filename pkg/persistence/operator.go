@@ -17,8 +17,8 @@ package persistence
 import (
 	"fmt"
 	"github.com/golang/glog"
-	"github.com/mmerrill3/persistence-operator/k8sutil"
 	"github.com/mmerrill3/persistence-operator/pkg/client/persistence/v1alpha1"
+	"github.com/mmerrill3/persistence-operator/pkg/k8sutil"
 	"github.com/mmerrill3/persistence-operator/third_party/workqueue"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"

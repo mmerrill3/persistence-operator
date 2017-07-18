@@ -16,7 +16,7 @@ package persistence
 
 import (
 	"fmt"
-	"github.com/mmerrill3/persistence-operator/pkg/client/monitoring/v1alpha1"
+	"github.com/mmerrill3/persistence-operator/pkg/client/persistence/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/apis/batch/v2alpha1"

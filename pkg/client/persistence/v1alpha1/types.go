@@ -17,8 +17,17 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/pkg/api/v1"
-	"time"
 )
+
+// PersistenceInstanceList is a list of PersistenceInstances.
+type PersistenceInstanceList struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard list metadata
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	metav1.ListMeta `json:"metadata,omitempty"`
+	// List of PersistenceInstance
+	Items []*PersistenceInstance `json:"items"`
+}
 
 // defines a Persistence Instance
 type PersistenceInstance struct {
@@ -46,6 +55,16 @@ type PersistenceInstanceSpec struct {
 	URL string `json:"url"`
 	// The port of the persistence
 	Port int32 `json:"port"`
+}
+
+// PersistenceActionList is a list of PersistenceActions.
+type PersistenceActionList struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard list metadata
+	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	metav1.ListMeta `json:"metadata,omitempty"`
+	// List of PersistenceActionList
+	Items []*PersistenceAction `json:"items"`
 }
 
 // defines a Persistence Action
@@ -81,7 +100,7 @@ type PersistenceActionSpec struct {
 	// Define which tolerations are appicable for the pods
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 	// The time that the action will be ran
-	ApplicationTime time.Time `json:"applicationTime"`
+	ApplicationTime *metav1.Time `json:"applicationTime"`
 	// The actual actions to run.  Every value in the list will be executed in literal order
 	Actions []string `json:"actions"`
 }
@@ -94,7 +113,7 @@ type PersistenceActionStatus struct {
 	// Represents whether the action has been performed
 	Applied bool `json:"paused"`
 	// The time that the action started exectuion
-	ExecutionTime time.Time `json:"executionTime"`
+	ExecutionTime *metav1.Time `json:"executionTime"`
 	// The time that the action completed
-	CompletionTime time.Time `json:"completionTime"`
+	CompletionTime *metav1.Time `json:"completionTime"`
 }

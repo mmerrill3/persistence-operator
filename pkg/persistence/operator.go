@@ -15,11 +15,14 @@
 package persistence
 
 import (
-	"github.com/mmerrill3/persistence-operator/pkg/client/monitoring/v1alpha1"
+	"fmt"
+	"github.com/golang/glog"
+	"github.com/mmerrill3/persistence-operator/k8sutil"
+	"github.com/mmerrill3/persistence-operator/pkg/client/persistence/v1alpha1"
 	"github.com/mmerrill3/persistence-operator/third_party/workqueue"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
-	batch "k8s.io/client-go/pkg/apis/batch/v1"
+	"k8s.io/client-go/pkg/api"
 	extensionsobj "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -57,8 +60,8 @@ type Config struct {
 func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.PersistenceAction) (*v1alpha1.PersistenceActionStatus, error) {
 	res := &v1alpha1.PersistenceActionStatus{}
 
-	if p.Spec.applied == true {
-		res.applied = true
+	if p.Spec.Applied == true {
+		res.Applied = true
 	} else {
 		jobs, err := kclient.Batch().Jobs(p.Namespace).List(ListOptions(p.Name))
 
@@ -67,11 +70,11 @@ func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.Persisten
 			if nil != job.Status.StartTime {
 				res.ExecutionTime = job.Status.StartTime
 			}
-			if nil != job.completionTime {
-				res.completionTime = job.completionTime
+			if nil != job.Status.CompletionTime {
+				res.CompletionTime = job.Status.CompletionTime
 			}
-			if job.succeeded > 0 {
-				res.applied = true
+			if job.Status.Succeeded > 0 {
+				res.Applied = true
 			}
 		}
 	}
@@ -80,7 +83,7 @@ func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.Persisten
 }
 
 // New creates a new controller.
-func New(conf Config, logger log.Logger) (*Operator, error) {
+func New(conf Config) (*Operator, error) {
 	cfg, err := k8sutil.NewClusterConfig(conf.Host, conf.TLSInsecure, &conf.TLSConfig)
 	if err != nil {
 		return nil, err
@@ -316,4 +319,13 @@ func (c *Operator) createTPRs() error {
 		return err
 	}
 	return k8sutil.WaitForTPRReady(c.kclient.CoreV1().RESTClient(), v1alpha1.TPRGroup, v1alpha1.TPRVersion, v1alpha1.TPRPersistenceActionName)
+}
+
+func ListOptions(name string) metav1.ListOptions {
+	return metav1.ListOptions{
+		LabelSelector: fields.SelectorFromSet(fields.Set(map[string]string{
+			"app":        "prometheus",
+			"prometheus": name,
+		})).String(),
+	}
 }

@@ -79,7 +79,7 @@ func (s *persistenceactions) Create(o *PersistenceAction) (*PersistenceAction, e
 }
 
 func (s *persistenceactions) Get(name string) (*PersistenceAction, error) {
-	obj, err := s.client.Get(name)
+	obj, err := s.client.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

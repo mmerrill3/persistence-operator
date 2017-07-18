@@ -35,7 +35,7 @@ type PersistenceInstanceGetter interface {
 }
 
 type PersistenceInstanceInterface interface {
-	Create(*ServiceMonitor) (*PersistenceInstance, error)
+	Create(*PersistenceInstance) (*PersistenceInstance, error)
 	Get(name string) (*PersistenceInstance, error)
 	Update(*PersistenceInstance) (*PersistenceInstance, error)
 	Delete(name string, options *metav1.DeleteOptions) error
@@ -79,7 +79,7 @@ func (s *persistenceinstances) Create(o *PersistenceInstance) (*PersistenceInsta
 }
 
 func (s *persistenceinstances) Get(name string) (*PersistenceInstance, error) {
-	obj, err := s.client.Get(name)
+	obj, err := s.client.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

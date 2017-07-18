@@ -22,7 +22,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/mmerrill3/persistence-operator/pkg/client/monitoring/v1alpha1"
+	"github.com/mmerrill3/persistence-operator/pkg/client/persistence/v1alpha1"
 	"github.com/mmerrill3/persistence-operator/pkg/k8sutil"
 	"github.com/mmerrill3/persistence-operator/pkg/persistence"
 )

@@ -14,7 +14,21 @@
 
 package v1alpha1
 
+import (
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+)
+
 const (
 	TPRGroup   = "persistence.mmerrill3.com"
 	TPRVersion = "v1alpha1"
 )
+
+type MonitoringV1alpha1Client struct {
+	restClient    rest.Interface
+	dynamicClient *dynamic.Client
+}
+
+func (c *MonitoringV1alpha1Client) PersistenceActions(namespace string) PersistenceActionInterface {
+	return newPersistenceActions(c.restClient, c.dynamicClient, namespace)
+}

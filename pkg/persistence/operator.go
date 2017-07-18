@@ -21,6 +21,7 @@ import (
 	"github.com/mmerrill3/persistence-operator/pkg/k8sutil"
 	"github.com/mmerrill3/persistence-operator/third_party/workqueue"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
@@ -254,7 +255,7 @@ func (c *Operator) handlePersistenceActionDelete(obj interface{}) {
 	if !ok {
 		return
 	}
-	glogInfof("Persistence deleted : %s", key)
+	glog.Infof("Persistence deleted : %s", key)
 	//TODO check if there is a job
 	//if so, remove it
 	c.enqueue(key)

@@ -100,13 +100,11 @@ func New(conf Config) (*Operator, error) {
 	}
 
 	c := &Operator{
-		kclient:                client,
-		mclient:                mclient,
-		host:                   cfg.Host,
-		kubeletObjectName:      kubeletObjectName,
-		kubeletObjectNamespace: kubeletObjectNamespace,
-		config:                 conf,
-		queue:                  workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "persistence"),
+		kclient: client,
+		mclient: mclient,
+		host:    cfg.Host,
+		config:  conf,
+		queue:   workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "persistence"),
 	}
 
 	c.persistenceActionInf = cache.NewSharedIndexInformer(
@@ -189,12 +187,12 @@ func (c *Operator) processNextWorkItem() bool {
 }
 
 func (c *Operator) sync(key string) error {
-	obj, exists, err := c.promInf.GetIndexer().GetByKey(key)
+	obj, exists, err := c.persistenceActionInf.GetIndexer().GetByKey(key)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		return c.destroyPersistenceAction(key)
+		return c.destroyPersistenceActionJob(key)
 	}
 
 	p := obj.(*v1alpha1.PersistenceAction)
@@ -218,10 +216,10 @@ func (c *Operator) sync(key string) error {
 	return nil
 }
 
-func (c *Operator) destroyPersistenceAction(key string) error {
+func (c *Operator) destroyPersistenceActionJob(key string) error {
 	// Create CronJob if it doesn't exist.
-	cronJobClient := c.kclient.BatchV2alpha1().CronJobs(p.Namespace)
-	if err := k8sutil.DeleteCronJob(svcClient, key); err != nil {
+	cronJobClient := c.kclient.BatchV2alpha1().CronJobs("")
+	if err := k8sutil.DeleteCronJob(cronJobClient, key); err != nil {
 		return errors.Wrap(err, "Deleting cron job failed")
 	}
 	return nil

@@ -135,13 +135,20 @@ func CreateOrUpdateCronJob(jclient clientv2alpha1.CronJobInterface, job *v2alpha
 }
 
 func DeleteCronJob(jclient clientv2alpha1.CronJobInterface, name string) error {
-	_, err := jclient.Get(name, metav1.GetOptions{})
+
+	var buffer bytes.Buffer
+	buffer.WriteString("persistence=")
+	buffer.WriteString(name)
+
+	cronjobList, err := jclient.List(name, metav1.ListOptions{LabelSelector: buffer.String()})
 	if err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrap(err, "retrieving job failed ")
+		return errors.Wrap(err, "retrieving cronjobs failed ")
 	}
-	err = jclient.Delete(name, &metav1.DeleteOptions{})
-	if err != nil {
-		return errors.Wrap(err, "Deleting job failed")
+	for cronjob := range cronjobList {
+		err = jclient.Delete(cronjob.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			return errors.Wrap(err, "Deleting cronjob failed")
+		}
 	}
 	return nil
 }

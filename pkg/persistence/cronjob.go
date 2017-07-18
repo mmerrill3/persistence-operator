@@ -34,7 +34,7 @@ func makeCronJob(p v1alpha1.PersistenceAction) (*v2alpha1.CronJob, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "make CronJob spec")
 	}
-
+	p.ObjectMeta.Labels["persistence"] = p.Name
 	cronjob := &v2alpha1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        prefixedName(p.Name),

@@ -192,7 +192,11 @@ func (c *Operator) sync(key string) error {
 		return err
 	}
 	if !exists {
-		return c.destroyPersistenceActionJob(key)
+		ns, name, err := cache.SplitMetaNamespaceKey(key)
+		if err != nil {
+			return err
+		}
+		return c.destroyPersistenceActionJob(ns, name)
 	}
 
 	p := obj.(*v1alpha1.PersistenceAction)
@@ -216,10 +220,10 @@ func (c *Operator) sync(key string) error {
 	return nil
 }
 
-func (c *Operator) destroyPersistenceActionJob(key string) error {
+func (c *Operator) destroyPersistenceActionJob(ns, name string) error {
 	// Create CronJob if it doesn't exist.
-	cronJobClient := c.kclient.BatchV2alpha1().CronJobs("")
-	if err := k8sutil.DeleteCronJob(cronJobClient, key); err != nil {
+	cronJobClient := c.kclient.BatchV2alpha1().CronJobs(ns)
+	if err := k8sutil.DeleteCronJob(cronJobClient, name); err != nil {
 		return errors.Wrap(err, "Deleting cron job failed")
 	}
 	return nil

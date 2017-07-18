@@ -29,7 +29,7 @@ import (
 
 type API struct {
 	kclient *kubernetes.Clientset
-	mclient *v1alpha1.MonitoringV1alpha1Client
+	mclient *v1alpha1.PersistenceV1alpha1Client
 }
 
 func New(conf persistence.Config) (*API, error) {

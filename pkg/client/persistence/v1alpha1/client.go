@@ -24,11 +24,27 @@ const (
 	TPRVersion = "v1alpha1"
 )
 
-type MonitoringV1alpha1Client struct {
+type PersistenceV1alpha1Client struct {
 	restClient    rest.Interface
 	dynamicClient *dynamic.Client
 }
 
-func (c *MonitoringV1alpha1Client) PersistenceActions(namespace string) PersistenceActionInterface {
+func (c *PersistenceV1alpha1Client) PersistenceActions(namespace string) PersistenceActionInterface {
 	return newPersistenceActions(c.restClient, c.dynamicClient, namespace)
+}
+
+func NewForConfig(c *rest.Config) (*PersistenceV1alpha1Client, error) {
+	config := *c
+	setConfigDefaults(&config)
+	client, err := rest.RESTClientFor(&config)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewClient(&config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PersistenceV1alpha1Client{client, dynamicClient}, nil
 }

@@ -21,10 +21,12 @@ import (
 	"github.com/mmerrill3/persistence-operator/pkg/k8sutil"
 	"github.com/mmerrill3/persistence-operator/third_party/workqueue"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 	extensionsobj "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -65,20 +67,18 @@ func PersistenceActionStatus(kclient kubernetes.Interface, p *v1alpha1.Persisten
 	if p.Spec.Applied == true {
 		res.Applied = true
 	} else {
-		jobs, err := kclient.Batch().Jobs(p.Namespace).List(ListOptions(p.Name))
+		job, err := kclient.BatchV2alpha1().CronJobs(p.Namespace).Get(p.Name, v1.GetOptions{})
 
-		//go through the jobs, find one that is complete
-		for _, job := range jobs.Items {
-			if nil != job.Status.StartTime {
-				res.ExecutionTime = job.Status.StartTime
-			}
-			if nil != job.Status.CompletionTime {
-				res.CompletionTime = job.Status.CompletionTime
-			}
-			if job.Status.Succeeded > 0 {
-				res.Applied = true
-			}
+		if nil != job.Status.StartTime {
+			res.ExecutionTime = job.Status.StartTime
 		}
+		if nil != job.Status.CompletionTime {
+			res.CompletionTime = job.Status.CompletionTime
+		}
+		if job.Status.Succeeded > 0 {
+			res.Applied = true
+		}
+
 	}
 
 	return res, nil
@@ -327,13 +327,4 @@ func (c *Operator) createTPRs() error {
 		return err
 	}
 	return k8sutil.WaitForTPRReady(c.kclient.CoreV1().RESTClient(), v1alpha1.TPRGroup, v1alpha1.TPRVersion, v1alpha1.TPRPersistenceActionName)
-}
-
-func ListOptions(name string) metav1.ListOptions {
-	return metav1.ListOptions{
-		LabelSelector: fields.SelectorFromSet(fields.Set(map[string]string{
-			"app":        "prometheus",
-			"prometheus": name,
-		})).String(),
-	}
 }

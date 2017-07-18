@@ -15,7 +15,10 @@
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/rest"
 )
 
@@ -47,4 +50,14 @@ func NewForConfig(c *rest.Config) (*PersistenceV1alpha1Client, error) {
 	}
 
 	return &PersistenceV1alpha1Client{client, dynamicClient}, nil
+}
+
+func setConfigDefaults(config *rest.Config) {
+	config.GroupVersion = &schema.GroupVersion{
+		Group:   TPRGroup,
+		Version: TPRVersion,
+	}
+	config.APIPath = "/apis"
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: api.Codecs}
+	return
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/mmerrill3/persistence-operator/pkg/k8sutil"
 	"github.com/mmerrill3/persistence-operator/third_party/workqueue"
 	"github.com/pkg/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
 	extensionsobj "k8s.io/client-go/pkg/apis/extensions/v1beta1"
@@ -206,7 +207,11 @@ func (c *Operator) sync(key string) error {
 
 	// Create CronJob if it doesn't exist.
 	cronJobClient := c.kclient.BatchV2alpha1().CronJobs(p.Namespace)
-	if err := k8sutil.CreateOrUpdateCronJob(svcClient, makeCronJob(p)); err != nil {
+	newCronJob, err := makeCronJob(p)
+	if err != nil {
+		return err
+	}
+	if err := k8sutil.CreateOrUpdateCronJob(cronJobClient, newCronJob); err != nil {
 		return errors.Wrap(err, "synchronizing cron job failed")
 	}
 

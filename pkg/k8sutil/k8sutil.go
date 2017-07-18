@@ -139,7 +139,7 @@ func DeleteCronJob(jclient clientv2alpha1.CronJobInterface, name string) error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrap(err, "retrieving job failed ")
 	}
-	_, err = jclient.Delete(name, &metav1.DeleteOptions{})
+	err = jclient.Delete(name, &metav1.DeleteOptions{})
 	if err != nil {
 		return errors.Wrap(err, "Deleting job failed")
 	}

@@ -93,7 +93,7 @@ func parseStatusUrl(path string) objectReference {
 func (api *API) status(w http.ResponseWriter, req *http.Request) {
 	or := parseStatusUrl(req.URL.Path)
 
-	p, err := api.mclient.PersistenceAction(or.namespace).Get(or.name)
+	p, err := api.mclient.PersistenceActions(or.namespace).Get(or.name)
 	if err != nil {
 		if k8sutil.IsResourceNotFoundError(err) {
 			w.WriteHeader(404)
@@ -102,7 +102,7 @@ func (api *API) status(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	p.Status, _, err = persistence.PersistenceActionStatus(api.kclient, p)
+	p.Status, err = persistence.PersistenceActionStatus(api.kclient, p)
 	if err != nil {
 		glog.Errorf("Problem while checking the status of the action from k8s : %s", err)
 	}
